@@ -28,7 +28,7 @@ export default function IndexPage() {
           <CardHeader className="px-6 pt-6"><h4 className="font-semibold">Classify Item</h4></CardHeader>
           <CardBody className="flex flex-col gap-4">
             
-            <div className="relative aspect-square bg-default-100 rounded-xl overflow-hidden border-2 border-dashed border-default-300">
+            <div className="relative aspect-square bg-default-100 rounded-xl overflow-hidden">
               <label className="w-full h-full cursor-pointer block">
                 {uploader.preview ? (
                   <Image src={uploader.preview} removeWrapper className="z-0 w-full h-full object-cover" />
