@@ -17,4 +17,5 @@ and [the server](https://github.com/xi-pec/guava-server).
 - HeroUI
 
 # Developers
-- xi-pec
+- zowlorin (AI model development)
+- xi_pec (Frontend and Backend development)
