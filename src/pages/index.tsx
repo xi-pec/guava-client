@@ -1,101 +1,90 @@
 import DefaultLayout from "@/layouts/default"
 import { Image } from "@heroui/image"
-import { Divider } from "@heroui/divider"
+import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card"
+import { Button } from "@heroui/button"
+import { Input } from "@heroui/input"
+import { Chip } from "@heroui/chip"
+import { Progress } from "@heroui/progress"
 import { useState } from "react"
-import { Spinner } from "@heroui/spinner";
-
-import { useTiramisoData } from "@/hooks/useTiramisoData"
 import { useUploader } from "@/hooks/useUploader"
-import { useAuth } from "@/hooks/useAuth"
-import { useGridResize } from "@/hooks/useGrid"
-import { Header } from "@/components/Header"
-import { Controls } from "@/components/Controls"
-import { UploadModal } from "@/components/UploadModal"
-import { LoginModal } from "@/components/LoginModal"
-
-const STATIC_URL = import.meta.env.VITE_STATIC_URL || "/static"
 
 export default function IndexPage() {
-  const { urls, query, setQuery, destroy, setDestroy, remove, load, loaded, debounced } = useTiramisoData()
-  const uploader = useUploader(load, query)
-  const auth = useAuth()
-  const { gridRef } = useGridResize(load)
-  const [confidence, setConfidence] = useState(0.25)
+  const [loading, setLoading] = useState(false)
+  const [labelInput, setLabelInput] = useState("")
+  const [labels, setLabels] = useState<string[]>([])
+
+  const uploader = useUploader(labels)
+
+  const scores = uploader.results 
+    ? Object.entries(uploader.results.all_scores)
+        .sort(([, a]: any, [, b]: any) => b - a)
+        .slice(0, 5)
+    : []
 
   return (
     <DefaultLayout>
-      <div className="flex flex-col h-full min-h-0 ml-4 mr-4">
-        <div className="pt-4">
-          <Header auth={auth}/>  
-        </div>
-
-        <div className="">
-          <div className="mb-6 grid place-items-center lg:grid-cols-[auto_auto]">
-            <div className="lg:place-self-end">
-              <Image  
-                isBlurred
-                src="/icon.png"
-                disableSkeleton={true}
-                className="aspect-square h-[5rem] lg:h-[7rem] mb-8"
-              />
+      <div className="grid place-items-center py-10">
+        <Card className="max-w-[400px] w-full">
+          <CardHeader className="px-6 pt-6"><h4 className="font-semibold">Classify Item</h4></CardHeader>
+          <CardBody className="flex flex-col gap-4">
+            
+            <div className="relative aspect-square bg-default-100 rounded-xl overflow-hidden border-2 border-dashed border-default-300">
+              <label className="w-full h-full cursor-pointer block">
+                {uploader.preview ? (
+                  <Image src={uploader.preview} removeWrapper className="z-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-default-500">Click to select</div>
+                )}
+                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" onChange={uploader.handleChange} />
+              </label>
             </div>
 
-            <div>
-              <h1 className="text-5xl lg:text-6xl text-center lg:text-left font-bold text-primary font-[Larken]">TIRAMISO</h1>
-              <h2 className="text-xl lg:text-2xl text-center lg:text-left font-light text">Transformer-based Item Recognition for Actively Missing Objects</h2>
+            {uploader.results && (
+              <div className="flex flex-col gap-2">
+                {scores.map(([name, score]: any) => (
+                  <Progress 
+                    key={name} 
+                    label={name} 
+                    value={score * 100} 
+                    size="sm"
+                    color={name === uploader.results.class ? "success" : "primary"}
+                    showValueLabel 
+                    formatOptions={{ style: "percent" }}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Input size="sm" value={labelInput} onValueChange={setLabelInput} placeholder="Add label" />
+                <Button variant="flat" color="primary" size="sm" onPress={() => {
+                  if (labelInput && !labels.includes(labelInput)) {
+                    setLabels([...labels, labelInput]); setLabelInput("");
+                  }
+                }}>Add</Button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {labels.map(l => (
+                  <Chip key={l} variant="flat" color="primary" size="sm" onClose={() => setLabels(labels.filter(i => i !== l))}>{l}</Chip>
+                ))}
+                {labels.length === 0 && (
+                  <span className="text-tiny text-default-400 italic">No labels added yet.</span>
+                )} 
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <Controls 
-          query={query} 
-          setQuery={setQuery} 
-          destroy={destroy} 
-          setDestroy={setDestroy}
-          confidence={confidence}
-          setConfidence={setConfidence}
-          debounced={debounced}
-          auth={auth}
-        />
-
-        <Divider />
-
-        {loaded ? <div ref={gridRef} className="min-h-[400px] z-1 col-1 row-1 flex-1 min-h-0 overflow-y-auto grid grid-cols-[repeat(auto-fit,150px)] auto-rows-[150px] gap-4 justify-center box-border m-4">
-          {auth.logged && <Image
-            isZoomed
-            className="p-12 bg-default-200"
-            src={`data:image/svg+xml;utf8,${encodeURIComponent('<svg fill="#606060" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M352 128C352 110.3 337.7 96 320 96C302.3 96 288 110.3 288 128L288 288L128 288C110.3 288 96 302.3 96 320C96 337.7 110.3 352 128 352L288 352L288 512C288 529.7 302.3 544 320 544C337.7 544 352 529.7 352 512L352 352L512 352C529.7 352 544 337.7 544 320C544 302.3 529.7 288 512 288L352 288L352 128z"/></svg>')}`}
-            width={150}
-            height={150}
-            onClick={uploader.onOpen}
-          />}
-          {
-            urls
-            .map((item: { path: string, confidence?: number }) => {
-              return item.confidence ? item.confidence >= confidence ? item.path : null : item.path
-            })
-            .filter((url: string | null) => url !== null)
-            .map((url, key) => {
-              return <Image
-                key={key}
-                isZoomed
-                src={STATIC_URL ? url.replace("static", STATIC_URL) : url}
-                width={150}
-                height={150}
-                onClick={() => { if (destroy) remove(url.split("/").pop()!) }}
-              />
-            })
-          }
-        </div>
-
-        : <div className="rounded-lg z-2 col-1 row-1 w-full h-full grid place-items-center opacity-25">
-          <Spinner color="primary" size="lg" variant="dots"/>
-        </div>
-        }
+          </CardBody>
+          <CardFooter>
+            <Button 
+              className="w-full" 
+              color="primary" 
+              isLoading={loading} 
+              isDisabled={!uploader.allowed || labels.length === 0}
+              onPress={() => uploader.handleUpload(() => setLoading(false))}
+            >Classify</Button>
+          </CardFooter>
+        </Card>
       </div>
-
-      <UploadModal uploader={uploader} />
-      <LoginModal auth={auth}/>
     </DefaultLayout>
   )
 }
